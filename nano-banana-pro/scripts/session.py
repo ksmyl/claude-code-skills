@@ -21,13 +21,18 @@ from google.genai import types
 _skill_dir = Path(__file__).resolve().parent.parent
 load_dotenv(_skill_dir / ".env")
 
-SESSION_DIR = Path("./nano-banana-output/.sessions")
+DEFAULT_OUTPUT_DIR = "./nano-banana-output"
 
 
-def save_session(session_id: str, history: list) -> Path:
+def _sessions_dir(output_dir: str = DEFAULT_OUTPUT_DIR) -> Path:
+    return Path(output_dir) / ".sessions"
+
+
+def save_session(session_id: str, history: list, output_dir: str = DEFAULT_OUTPUT_DIR) -> Path:
     """Save conversation history to a session file."""
-    SESSION_DIR.mkdir(parents=True, exist_ok=True)
-    session_file = SESSION_DIR / f"{session_id}.json"
+    session_dir = _sessions_dir(output_dir)
+    session_dir.mkdir(parents=True, exist_ok=True)
+    session_file = session_dir / f"{session_id}.json"
     serializable = []
     for msg in history:
         parts_data = []
@@ -48,9 +53,9 @@ def save_session(session_id: str, history: list) -> Path:
     return session_file
 
 
-def load_session(session_id: str) -> list | None:
+def load_session(session_id: str, output_dir: str = DEFAULT_OUTPUT_DIR) -> list | None:
     """Load a previously saved session. Returns None if not found."""
-    session_file = SESSION_DIR / f"{session_id}.json"
+    session_file = _sessions_dir(output_dir) / f"{session_id}.json"
     if not session_file.exists():
         return None
     data = json.loads(session_file.read_text())
@@ -72,12 +77,13 @@ def load_session(session_id: str) -> list | None:
     return history
 
 
-def list_sessions() -> list[dict]:
+def list_sessions(output_dir: str = DEFAULT_OUTPUT_DIR) -> list[dict]:
     """List all saved sessions with metadata."""
-    if not SESSION_DIR.exists():
+    session_dir = _sessions_dir(output_dir)
+    if not session_dir.exists():
         return []
     sessions = []
-    for f in sorted(SESSION_DIR.glob("*.json")):
+    for f in sorted(session_dir.glob("*.json")):
         data = json.loads(f.read_text())
         turn_count = len(data) // 2
         # Extract first user prompt as summary
@@ -121,7 +127,7 @@ def session_turn(
     if session_id is None:
         session_id = datetime.now().strftime("session_%Y%m%d_%H%M%S")
 
-    history = load_session(session_id) or []
+    history = load_session(session_id, output_dir) or []
 
     config = types.GenerateContentConfig(
         response_modalities=["TEXT", "IMAGE"],
@@ -145,6 +151,10 @@ def session_turn(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     turn_num = len(history) // 2 + 1
 
+    if not response.candidates:
+        print("ERROR: No candidates returned — the prompt may have been blocked.", file=sys.stderr)
+        return None, session_id
+
     saved_path = None
     for part in response.candidates[0].content.parts:
         if part.inline_data is not None:
@@ -156,7 +166,7 @@ def session_turn(
         elif part.text is not None:
             print(f"Model notes: {part.text}")
 
-    save_session(session_id, chat.get_history())
+    save_session(session_id, chat.get_history(), output_dir)
 
     if saved_path is None:
         print("WARNING: No image was returned by the model.", file=sys.stderr)
@@ -185,7 +195,7 @@ def main():
     args = parser.parse_args()
 
     if args.list_sessions:
-        sessions = list_sessions()
+        sessions = list_sessions(args.output_dir)
         if sessions:
             print(f"{'ID':<35} {'Turns':>5}  {'Modified':<17}  First Prompt")
             print("-" * 100)

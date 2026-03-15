@@ -5,7 +5,6 @@ without requiring a GEMINI_API_KEY (no API calls are made).
 """
 
 import ast
-import json
 from pathlib import Path
 
 import pytest

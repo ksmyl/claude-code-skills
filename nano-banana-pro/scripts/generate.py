@@ -57,6 +57,10 @@ def generate_image(
         slug = "_".join(prompt.lower().split()[:5]).replace("/", "-")
         filename = f"{slug}_{timestamp}.png"
 
+    if not response.candidates:
+        print("ERROR: No candidates returned — the prompt may have been blocked.", file=sys.stderr)
+        return ""
+
     saved_path = None
     for part in response.candidates[0].content.parts:
         if part.inline_data is not None:

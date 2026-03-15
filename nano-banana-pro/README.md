@@ -8,7 +8,6 @@ Claude Code skill for generating, editing, and iteratively refining images using
 - **Natural-language editing** — modify existing images with plain English instructions
 - **Multi-turn sessions** — iteratively refine images across multiple turns with full context preservation
 - **Session persistence** — save and resume editing sessions later
-- **Reference images** — up to 14 reference images for style/character consistency
 - **Resolution control** — 512, 1K, 2K, or 4K output
 - **Aspect ratios** — 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9
 - **Text rendering** — industry-leading text-in-image accuracy
