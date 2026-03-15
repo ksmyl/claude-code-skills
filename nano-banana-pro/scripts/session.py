@@ -66,7 +66,11 @@ def load_session(session_id: str, output_dir: str = DEFAULT_OUTPUT_DIR) -> list 
     session_file = _sessions_dir(output_dir) / f"{safe_id}.json"
     if not session_file.exists():
         return None
-    data = json.loads(session_file.read_text())
+    try:
+        data = json.loads(session_file.read_text())
+    except json.JSONDecodeError:
+        print(f"WARNING: Corrupted session file: {session_file}", file=sys.stderr)
+        return None
     history = []
     for msg in data:
         parts = []
@@ -92,7 +96,10 @@ def list_sessions(output_dir: str = DEFAULT_OUTPUT_DIR) -> list[dict]:
         return []
     sessions = []
     for f in sorted(session_dir.glob("*.json")):
-        data = json.loads(f.read_text())
+        try:
+            data = json.loads(f.read_text())
+        except json.JSONDecodeError:
+            continue
         turn_count = len(data) // 2
         # Extract first user prompt as summary
         first_prompt = ""
@@ -166,7 +173,7 @@ def session_turn(
     saved_path = None
     for part in response.candidates[0].content.parts:
         if part.inline_data is not None:
-            filename = f"{session_id}_turn{turn_num}_{timestamp}.png"
+            filename = f"{_safe_session_id(session_id)}_turn{turn_num}_{timestamp}.png"
             save_to = out / filename
             save_to.write_bytes(part.inline_data.data)
             saved_path = str(save_to)
