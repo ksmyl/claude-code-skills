@@ -9,6 +9,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -24,15 +25,21 @@ load_dotenv(_skill_dir / ".env")
 DEFAULT_OUTPUT_DIR = "./nano-banana-output"
 
 
+def _safe_session_id(session_id: str) -> str:
+    """Sanitize session_id to prevent path traversal."""
+    return re.sub(r"[^A-Za-z0-9_-]", "_", session_id)
+
+
 def _sessions_dir(output_dir: str = DEFAULT_OUTPUT_DIR) -> Path:
     return Path(output_dir) / ".sessions"
 
 
 def save_session(session_id: str, history: list, output_dir: str = DEFAULT_OUTPUT_DIR) -> Path:
     """Save conversation history to a session file."""
+    safe_id = _safe_session_id(session_id)
     session_dir = _sessions_dir(output_dir)
     session_dir.mkdir(parents=True, exist_ok=True)
-    session_file = session_dir / f"{session_id}.json"
+    session_file = session_dir / f"{safe_id}.json"
     serializable = []
     for msg in history:
         parts_data = []
@@ -55,7 +62,8 @@ def save_session(session_id: str, history: list, output_dir: str = DEFAULT_OUTPU
 
 def load_session(session_id: str, output_dir: str = DEFAULT_OUTPUT_DIR) -> list | None:
     """Load a previously saved session. Returns None if not found."""
-    session_file = _sessions_dir(output_dir) / f"{session_id}.json"
+    safe_id = _safe_session_id(session_id)
+    session_file = _sessions_dir(output_dir) / f"{safe_id}.json"
     if not session_file.exists():
         return None
     data = json.loads(session_file.read_text())

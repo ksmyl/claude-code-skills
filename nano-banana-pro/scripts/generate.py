@@ -6,6 +6,7 @@ Generate images from text prompts using Google's Gemini 3 Pro Image model.
 
 import argparse
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -54,8 +55,10 @@ def generate_image(
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     if filename is None:
-        slug = "_".join(prompt.lower().split()[:5]).replace("/", "-")
+        slug = re.sub(r"[^a-z0-9_]+", "_", "_".join(prompt.lower().split()[:5]))[:60]
         filename = f"{slug}_{timestamp}.png"
+    else:
+        filename = Path(filename).name
 
     if not response.candidates:
         print("ERROR: No candidates returned — the prompt may have been blocked.", file=sys.stderr)
