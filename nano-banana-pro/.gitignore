@@ -1,0 +1,6 @@
+nano-banana-output/
+__pycache__/
+*.pyc
+.env
+.sessions/
+.venv/
